@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Consulta, Registro y Carga Manual</title>
+    <style>
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .contenedor { width: 100%; max-width: 540px; }
+        h1 { font-size: 22px; margin-bottom: 4px; text-align: center; }
+        h2 { font-size: 18px; margin: 0; }
+        p.sub { color: #888; font-size: 14px; text-align: center; margin-top: 0; margin-bottom: 20px; }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 15px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            background: #1e1e1e;
+            color: #fff;
+            outline: none;
+        }
+        textarea { resize: vertical; min-height: 120px; font-family: monospace; font-size: 13px; }
+        #inputCodigo { text-transform: uppercase; margin-bottom: 12px; font-size: 16px; }
+        input:focus, textarea:focus { border-color: #4dabf7; }
+        .botones { display: flex; gap: 10px; margin-bottom: 20px; }
+        button {
+            flex: 1;
+            padding: 12px 14px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        button:active { opacity: 0.8; }
+        .btn-buscar { background-color: #228be6; color: white; }
+        .btn-limpiar { background-color: #2c2e33; color: #ccc; flex: 0.4; }
+        .tarjeta {
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            padding: 18px;
+            border: 1px solid #2c2e33;
+            margin-bottom: 22px;
+        }
+        .contador-resultados {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2c2e33;
+            text-align: center;
+        }
+        .codigo-tag { color: #4dabf7; font-size: 13px; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .badge-guardado { background: #2b8a3e; color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 11px; }
+        .nombre { font-size: 19px; font-weight: bold; margin-bottom: 12px; }
+        .dato { font-size: 15px; margin: 6px 0; color: #ddd; }
+        .total { font-size: 17px; font-weight: bold; color: #51cf66; margin-top: 10px; padding-top: 10px; border-top: 1px solid #333; }
+        
+        .panel-carga {
+            margin-top: 14px;
+            background: #161618;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #2c2e33;
+        }
+        .fila-inputs { display: flex; gap: 10px; margin-bottom: 10px; }
+        .grupo-input { flex: 1; }
+        .grupo-input label { display: block; font-size: 12px; color: #aaa; margin-bottom: 4px; font-weight: 600; }
+        .grupo-input input { padding: 10px; font-size: 15px; background: #25262b; border: 1px solid #373a40; }
+        .btn-guardar-item { width: 100%; background-color: #2b8a3e; color: #fff; padding: 11px; font-size: 15px; border-radius: 8px; }
+        .separador-item { border-top: 1px dashed #444; margin: 20px 0; }
+        .error { color: #ff6b6b; font-weight: 600; text-align: center; }
+        .neutro { color: #888; text-align: center; font-size: 14px; }
+
+        /* --- ESTILOS CARGA MANUAL IA --- */
+        .cabecera-manual { display: flex; align-items: center; margin-bottom: 12px; }
+        .caja-prompt {
+            background: #161618;
+            border: 1px solid #373a40;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #ccc;
+            margin-bottom: 12px;
+        }
+        .btn-copiar {
+            background: #2c2e33;
+            color: #4dabf7;
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            width: 100%;
+        }
+        .btn-procesar { background: #7950f2; color: #fff; margin-top: 10px; width: 100%; }
+        .opciones-ia { display: flex; align-items: center; font-size: 12px; color: #aaa; margin-top: 10px; }
+        .lista-extraidos-chat { margin-top: 10px; padding: 8px; background: #1a1b1e; border-radius: 6px; font-size: 12px; max-height: 140px; overflow-y: auto; border: 1px solid #333; display: none; }
+        .lista-extraidos-chat div { padding: 3px 0; border-bottom: 1px dashed #2c2e33; }
+        .btn-descargar-html { width: 100%; background: #25262b; color: #4dabf7; border: 1px solid #373a40; padding: 9px; font-size: 13px; margin-top: 10px; border-radius: 8px; }
+
+        /* --- ESTILOS DEL REGISTRO --- */
+        .cabecera-registro { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+        .acciones-registro { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .btn-imprimir { background-color: #7950f2; color: white; }
+        .btn-csv { background-color: #0ca678; color: white; }
+        .btn-vaciar { background-color: #e03131; color: white; flex: 0.4; }
+        .item-registro { background: #161618; border: 1px solid #2c2e33; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+        .item-registro-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .btn-quitar { background: #2c2e33; color: #ff6b6b; padding: 6px 10px; border-radius: 6px; font-size: 13px; flex: unset; }
+        .info-costo-mini { font-size: 13px; color: #999; margin-bottom: 10px; }
+        .resumen-item-reg { display: flex; justify-content: space-between; font-size: 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #2c2e33; color: #ddd; }
+        .ganancia-pos { color: #51cf66; font-weight: bold; }
+        .ganancia-neg { color: #ff6b6b; font-weight: bold; }
+        .resumen-general { background: #25262b; padding: 14px; border-radius: 10px; margin-top: 14px; font-size: 15px; }
+        .resumen-general div { margin: 5px 0; }
+        .area-impresion { display: none; }
+
+        @media print {
+            body { background-color: #ffffff; color: #000000; padding: 0; display: block; }
+            .no-imprimir { display: none !important; }
+            .contenedor { max-width: 100%; width: 100%; }
+            .area-impresion { display: block !important; width: 100%; }
+            .titulo-impresion { font-size: 20px; font-weight: bold; margin-bottom: 4px; }
+            .fecha-impresion { font-size: 12px; color: #444; margin-bottom: 16px; }
+            table.tabla-print { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
+            table.tabla-print th, table.tabla-print td { border: 1px solid #000; padding: 6px 8px; text-align: left; }
+            table.tabla-print th { background-color: #f0f0f0; font-weight: bold; }
+            .totales-print { border: 1px solid #000; padding: 10px; font-size: 13px; width: 320px; margin-left: auto; }
+            .totales-print div { margin: 4px 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="contenedor">
+        <div class="no-imprimir">
+            <h1>Consulta de Productos</h1>
+            <p class="sub" id="subtitulo">109 productos cargados</p>
+
+            <input type="text" id="inputCodigo" placeholder="Código o nombre (Ej: MARIPOSA, MOLDE, BM1300)" autocomplete="off">
+            <div class="botones">
+                <button class="btn-buscar" onclick="buscarProducto()">Buscar</button>
+                <button class="btn-limpiar" onclick="limpiar()">Limpiar</button>
+            </div>
+            <div id="resultado" class="tarjeta">
+                <div class="neutro">Ingresá un código o nombre para ver el detalle y guardarlo en el registro</div>
+            </div>
+
+            <!-- SECCIÓN CARGA MANUAL CON IA EXTERNA -->
+            <div class="tarjeta">
+                <div class="cabecera-manual">
+                    <h2>🧠 Cargar Stock (Vía ChatGPT/Claude)</h2>
+                </div>
+                
+                <div class="caja-prompt">
+                    <b>Paso 1:</b> Copiá este texto y pegalo en ChatGPT junto a la foto de tu ticket.
+                    <button class="btn-copiar" onclick="copiarPrompt(this)">📋 Copiar instrucciones para la IA</button>
+                </div>
+
+                <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;"><b>Paso 2:</b> Pegá la respuesta de la IA acá abajo:</div>
+                <textarea id="inputTextoManual" placeholder='Ejemplo de lo que tenés que pegar:
+[
+  {
+    "codigo": "BM4706",
+    "nombre": "ANGEL CORAZON GDE",
+    "precio_unitario": 1800,
+    "cantidad": 5,
+    "extra": "ANGELITO GRANDE NAVIDAD"
+  }
+]'></textarea>
+                
+                <div class="opciones-ia">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                        <input type="checkbox" id="chkSumarExistentes" checked>
+                        Sumar unidades si el código ya existe
+                    </label>
+                </div>
+
+                <button class="btn-procesar" onclick="procesarTextoManual()">⚙️ Procesar y Guardar</button>
+                
+                <div class="lista-extraidos-chat" id="listaCargados"></div>
+
+                <button class="btn-descargar-html" onclick="descargarHTMLActualizado()">
+                    💻 Descargar este HTML con todos los productos guardados
+                </button>
+            </div>
+
+            <!-- SECCIÓN MI REGISTRO -->
+            <div class="tarjeta">
+                <div class="cabecera-registro">
+                    <h2>📋 Mi Registro (<span id="contadorRegistro">0</span>)</h2>
+                </div>
+                <div class="acciones-registro">
+                    <button class="btn-imprimir" onclick="imprimirRegistro()">🖨️ Imprimir / PDF</button>
+                    <button class="btn-csv" onclick="descargarCSV()">📥 Excel (CSV)</button>
+                    <button class="btn-vaciar" onclick="vaciarRegistro()">🗑️ Vaciar</button>
+                </div>
+                <div id="listaRegistro">
+                    <div class="neutro">Todavía no guardaste productos en el registro.</div>
+                </div>
+            </div>
+        </div>
+        <div class="area-impresion" id="areaImpresion"></div>
+    </div>
+
+    <script>
+        // --- BASE DE DATOS INICIAL (109 PRODUCTOS) ---
+        /* INICIO_BASE_DATOS */
+        const baseDatos = {
+            "BM1300": { nombre: "ABECEDARIO GDE X26", precio_unitario: 5200, cantidad: 10, extra: "LETRAS ABC" },
+            "BM1551": { nombre: "LAPICERA", precio_unitario: 800, cantidad: 52, extra: "BIROME BOLIGRAFO" },
+            "BM0664": { nombre: "ABC MÁS NÚMERO", precio_unitario: 1100, cantidad: 5, extra: "ABECEDARIO LETRAS NUMEROS" },
+            "BM1463": { nombre: "MOLDE ABECEDARIO C/NUMERO", precio_unitario: 1300, cantidad: 6, extra: "LETRAS NUMEROS ABC" },
+            "BM4719": { nombre: "PORTA VELA ARBOL", precio_unitario: 7900, cantidad: 25, extra: "PORTAVELA NAVIDAD NAVIDENO" },
+            "BM4095": { nombre: "SET ALHAJERO DUENDE", precio_unitario: 4900, cantidad: 5, extra: "NAVIDAD JOYERO" },
+            "BM4712": { nombre: "FANTASMA 3D GDE", precio_unitario: 2600, cantidad: 3, extra: "HALLOWEEN GRANDE" },
+            "BM4093": { nombre: "ALCE 3D", precio_unitario: 1400, cantidad: 10, extra: "RENO CIERVO NAVIDAD" },
+            "BM4728": { nombre: "PORT VELA TRENZA CORAZON", precio_unitario: 1800, cantidad: 5, extra: "PORTAVELA PORTA VELA" },
+            "BM3425": { nombre: "ROSA 3D", precio_unitario: 1200, cantidad: 5, extra: "FLOR FLORES" },
+            "BM3416": { nombre: "ROSA 3D", precio_unitario: 1700, cantidad: 5, extra: "FLOR FLORES" },
+            "BM3933": { nombre: "BANDEJA", precio_unitario: 9000, cantidad: 20, extra: "PLATO" },
+            "BM4639": { nombre: "FRANBUESA X6 GDE", precio_unitario: 5200, cantidad: 15, extra: "FRAMBUESA FRUTA GRANDE" },
+            "BM4265": { nombre: "AUTO GRANDES DISTINTO X6", precio_unitario: 5100, cantidad: 12, extra: "AUTITO VEHICULO CAMIONETA" },
+            "BM4757": { nombre: "ORGANIZADOR NAVIDAD ARBOL", precio_unitario: 2200, cantidad: 10, extra: "NAVIDENO PINO" },
+            "BM2944": { nombre: "OSO 3D", precio_unitario: 1700, cantidad: 15, extra: "OSITO PELUCHE" },
+            "BM3686": { nombre: "MARGARITA", precio_unitario: 700, cantidad: 15, extra: "FLOR FLORES" },
+            "BM4497": { nombre: "PLATO TRENZA CORAZON", precio_unitario: 2400, cantidad: 15, extra: "BANDEJA" },
+            "BM4638": { nombre: "FRUTA MIX X8", precio_unitario: 1700, cantidad: 10, extra: "FRUTAS SURTIDO" },
+            "BM3888": { nombre: "CUBITO X12", precio_unitario: 2200, cantidad: 3, extra: "CUBO HIELO" },
+            "BM4272": { nombre: "MACENA NENA", precio_unitario: 5300, cantidad: 10, extra: "MACETA PLANTA NINA" },
+            "BM4740": { nombre: "ADORNO NAVIDAD X4", precio_unitario: 2800, cantidad: 5, extra: "NAVIDENO" },
+            "BM4741": { nombre: "MARGARITA CORAZON C/AUJERO", precio_unitario: 2300, cantidad: 5, extra: "FLOR FLORES AGUJERO" },
+            "BM3296": { nombre: "MANZANA NAVIDAD", precio_unitario: 3600, cantidad: 10, extra: "FRUTA NAVIDENA" },
+            "BM4755": { nombre: "ALHAJERO GLOBO NIEVE C/TAPA", precio_unitario: 4600, cantidad: 40, extra: "JOYERO NAVIDAD BOLA CRISTAL" },
+            "BM4717": { nombre: "ALHAJERO C/TAPA CARRUSEL", precio_unitario: 7000, cantidad: 3, extra: "JOYERO CALESITA" },
+            "BM4094": { nombre: "PALACIO 3D", precio_unitario: 8400, cantidad: 12, extra: "CASTILLO CASA" },
+            "BM4322": { nombre: "DINOSARIO X8", precio_unitario: 1700, cantidad: 10, extra: "DINOSAURIO DINO" },
+            "BM4731": { nombre: "ASTRONAUTA X6", precio_unitario: 2400, cantidad: 10, extra: "ESPACIO" },
+            "BM4734": { nombre: "TORTUGA CH 3D", precio_unitario: 600, cantidad: 12, extra: "TORTUGUITA CHICA ANIMAL" },
+            "BM4726": { nombre: "MACETA NENA", precio_unitario: 3300, cantidad: 30, extra: "PLANTA NINA" },
+            "BM4723": { nombre: "MACETA CARA", precio_unitario: 3600, cantidad: 10, extra: "PLANTA ROSTRO" },
+            "BM4721": { nombre: "MACETA NENA GATO", precio_unitario: 4500, cantidad: 25, extra: "GATITO PLANTA NINA" },
+            "BM4754": { nombre: "BARRITA X4 ESPANIOL", precio_unitario: 3000, cantidad: 40, extra: "ESPANOL BARRA" },
+            "BM4753": { nombre: "BARRITA X5 ESPANIOL", precio_unitario: 2000, cantidad: 40, extra: "ESPANOL BARRA" },
+            "BM4642": { nombre: "FRANBUESA X12", precio_unitario: 5200, cantidad: 30, extra: "FRAMBUESA FRUTA" },
+            "BM4715": { nombre: "PORTA HUEVO X6", precio_unitario: 2900, cantidad: 10, extra: "HUEVERA MAPLE" },
+            "BM4743": { nombre: "CACTUS X9", precio_unitario: 3800, cantidad: 5, extra: "PLANTA SUCULENTA" },
+            "BM4742": { nombre: "FRUTA MIX", precio_unitario: 3800, cantidad: 15, extra: "FRUTAS SURTIDO" },
+            "BM4756": { nombre: "ALHAJERO GLOBO RAYA C/TAPA", precio_unitario: 4600, cantidad: 10, extra: "JOYERO" },
+            "BM4720": { nombre: "PORTA SAHUMERIO", precio_unitario: 1800, cantidad: 10, extra: "PORTASAHUMERIO INCIENSO" },
+            "BM4632": { nombre: "MINI JENGIBREX24", precio_unitario: 5500, cantidad: 6, extra: "JENGIBRE GALLETA NAVIDAD" },
+            "BM4673": { nombre: "MINI JENGIBRE SURTIDO X30", precio_unitario: 2400, cantidad: 10, extra: "GALLETA NAVIDAD" },
+            "BM4674": { nombre: "MINI PAPANOEL SURTIDO X30", precio_unitario: 2400, cantidad: 10, extra: "PAPA NOEL SANTA NAVIDAD" },
+            "BM4219": { nombre: "ARBOL 3D", precio_unitario: 4000, cantidad: 4, extra: "PINO NAVIDAD ARBOLITO" },
+            "BM4224": { nombre: "VELA NAVIDAD MUNIECO NIEVE", precio_unitario: 3400, cantidad: 10, extra: "MUNECO NAVIDENA" },
+            "BM4223": { nombre: "VELA NAVIDAD CASA", precio_unitario: 3400, cantidad: 10, extra: "CASITA NAVIDENA" },
+            "BM4222": { nombre: "VELA NAVIDAD ARBOL", precio_unitario: 3400, cantidad: 10, extra: "PINO ARBOLITO NAVIDENA" },
+            "BM4746": { nombre: "ARBOL NAVIDAD 3D", precio_unitario: 3700, cantidad: 12, extra: "PINO ARBOLITO NAVIDENO" },
+            "BM4226": { nombre: "CASA NAVIDAD", precio_unitario: 4400, cantidad: 4, extra: "CASITA NAVIDENA" },
+            "BM4225": { nombre: "CASA NAVIDAD", precio_unitario: 4700, cantidad: 4, extra: "CASITA NAVIDENA" },
+            "BM4675": { nombre: "MINI NAVIDAD", precio_unitario: 3800, cantidad: 4, extra: "ADORNO NAVIDENO" },
+            "BM3988": { nombre: "CHAPITA ALCE", precio_unitario: 1200, cantidad: 5, extra: "CHAPA RENO CIERVO NAVIDAD" },
+            "BM3987": { nombre: "CHAPITA PAPA NOEL", precio_unitario: 1200, cantidad: 5, extra: "CHAPA PAPANOEL SANTA NAVIDAD" },
+            "BM4015": { nombre: "ENANOS", precio_unitario: 2200, cantidad: 15, extra: "ENANITO DUENDE GNOMO" },
+            "BM4099": { nombre: "GLOBO NAVIDAD ARBOL", precio_unitario: 1700, cantidad: 10, extra: "PINO ARBOLITO NAVIDENO" },
+            "BM4706": { nombre: "ANGEL CORAZON GDE", precio_unitario: 1800, cantidad: 5, extra: "ANGELITO GRANDE NAVIDAD" },
+            "BM4707": { nombre: "ANGEL CORAZON CH", precio_unitario: 1200, cantidad: 4, extra: "ANGELITO CHICO NAVIDAD" },
+            "BM4100": { nombre: "GLOBO NAVIDAD PAPA NOEL C/ALBOL", precio_unitario: 1700, cantidad: 10, extra: "PAPANOEL SANTA ARBOL ARBOLITO" },
+            "L0123": { nombre: "ACUARELA X6 3ML VACIA", precio_unitario: 280, cantidad: 3000, extra: "PINTURA ENVASE POTE" },
+            "BISEL120": { nombre: "BISEL (TANDA $120)", precio_unitario: 120, cantidad: 100, extra: "BISELES DIJE MARCO RESINA" },
+            "BISEL100": { nombre: "BISEL (TANDA $100)", precio_unitario: 100, cantidad: 300, extra: "BISELES DIJE MARCO RESINA" },
+            "5925030122278": { nombre: "GUIA FLOR 2227*1UN", precio_unitario: 4000, cantidad: 3, extra: "FLORES GUIRNALDA PLANTA 2227" },
+            "2022000812535": { nombre: "GUIA FLOR*1UN", precio_unitario: 4000, cantidad: 2, extra: "FLORES GUIRNALDA PLANTA" },
+            "7892506138812": { nombre: "GUIA DE HOJA 881*1UN", precio_unitario: 7500, cantidad: 1, extra: "HOJAS ENREDADERA PLANTA GUIRNALDA 881" },
+            "7892506138805": { nombre: "GUIA DE HOJA 880*1UN", precio_unitario: 7500, cantidad: 1, extra: "HOJAS ENREDADERA PLANTA GUIRNALDA 880" },
+            "DOYPACK10X15": { nombre: "DOYPACK HOLOGRAFICA 10X15", precio_unitario: 4500, cantidad: 7, extra: "BOLSA BOLSITA EMPAQUE PACKAGING ZIPPER" },
+            "DOYPACK16X24": { nombre: "DOYPACK HOLOGRAFICA 16X24", precio_unitario: 8500, cantidad: 3, extra: "BOLSA BOLSITA EMPAQUE PACKAGING ZIPPER" },
+            "DOYPACK12X20": { nombre: "DOYPACK HOLOGRAFICA 12X20", precio_unitario: 5500, cantidad: 10, extra: "BOLSA BOLSITA EMPAQUE PACKAGING ZIPPER" },
+            "8873": { nombre: "LICUADORA HS-860", precio_unitario: 13120, cantidad: 1, extra: "JUGUERA VASO PORTATIL HS860" },
+            "0563": { nombre: "ESPEJO LED CUADRADO", precio_unitario: 8900, cantidad: 1, extra: "MAQUILLAJE LUZ" },
+            "GORRO": { nombre: "GORRO SECAPELO MONO", precio_unitario: 1800, cantidad: 2, extra: "TOALLA PELO CABELLO BANO DUCHA" },
+            "0273": { nombre: "DESTAPADOR CANERIA 3M", precio_unitario: 2970, cantidad: 1, extra: "CANERIA CINTA RESORTE BANO COCINA" },
+            "6950594529828": { nombre: "PICANA 928 *1UN", precio_unitario: 12650, cantidad: 1, extra: "LINTERNA DEFENSA" },
+            "6900000012710": { nombre: "LECHERA 9CM *1UN", precio_unitario: 4880, cantidad: 6, extra: "JARRO HERVIDOR VASO LECHE ACERO" },
+            "7798326330897": { nombre: "CUBETERA PARA HIELOS 24X1*1UN", precio_unitario: 1450, cantidad: 6, extra: "CUBITO MOLDE HELADERA" },
+            "7798111183424": { nombre: "JARRA ACERO 600ML 1U *1UN", precio_unitario: 9990, cantidad: 2, extra: "LECHERA BARISTA CAFE LECHE" },
+            "3790001061823": { nombre: "JARRA ACERO 350ML *1UN", precio_unitario: 6990, cantidad: 10, extra: "LECHERA BARISTA CAFE LECHE" },
+            "6801225090869": { nombre: "CUCHARA DE HELADO 1UN", precio_unitario: 5280, cantidad: 2, extra: "BOCHERO PORCIONADOR COCINA" },
+            "7790000217333": { nombre: "ENPUDOS*2 *1UN", precio_unitario: 1890, cantidad: 1, extra: "EMBUDO EMBUDOS COCINA LIQUIDO" },
+            "3790001041306": { nombre: "EXPRIMIDOR *1UN", precio_unitario: 1790, cantidad: 1, extra: "JUGUERA LIMON NARANJA CITRICO" },
+            "99999999": { nombre: "TAZA", precio_unitario: 16000, cantidad: 1, extra: "POCILLO VASO CAFE TE" },
+            "1350": { nombre: "PERFUMER*1UN", precio_unitario: 1350, cantidad: 1, extra: "PERFUMERO ATOMIZADOR SPRAY FRASCO" },
+            "7499165250017": { nombre: "SET DE CUCHARAS X6U *1UN", precio_unitario: 4650, cantidad: 5, extra: "CUCHARITA CUBIERTOS COCINA" },
+            "AD005R5": { nombre: "MOLDE SILICONA 6 ESPIRITUS C...", precio_unitario: 3000, cantidad: 6, extra: "FANTASMA HALLOWEEN RESINA VELA" },
+            "15083": { nombre: "MOLDE SILICONA MARIPOSA MOD....", precio_unitario: 4180, cantidad: 1, extra: "MARIPOSAS RESINA S1908 H61-029Q12 029Q12 8190802912693" },
+            "15863": { nombre: "MOLDE SILICONA 12 HELADO CUB...", precio_unitario: 3960, cantidad: 3, extra: "HELADITO PALETA CUBITO" },
+            "AD001I6": { nombre: "MOLDE SILCONA 8 NAVIDADES .B...", precio_unitario: 3000, cantidad: 2, extra: "SILICONA NAVIDAD NAVIDENO" },
+            "AB036E5": { nombre: "MOLDE SILICONA BOMBON DINOSA...", precio_unitario: 1500, cantidad: 6, extra: "DINOSAURIO DINO CHOCOLATE" },
+            "AD005J10": { nombre: "MOLDE SILICONA 7 NAVIDADES B...", precio_unitario: 3000, cantidad: 1, extra: "NAVIDAD NAVIDENO" },
+            "16166": { nombre: "MOLDE SILICONA 6 FRUTAS P/HE...", precio_unitario: 4170, cantidad: 3, extra: "FRUTA HELADO" },
+            "AA008Q5": { nombre: "JARRA MEDIDORA PLASTICO CHIC...", precio_unitario: 1530, cantidad: 14, extra: "VASO MEDIDOR CHICA RESINA" },
+            "AD001B6": { nombre: "MOLDE SILICONA 72 FIGURAS DE...", precio_unitario: 5000, cantidad: 3, extra: "MINIATURAS DIJES" },
+            "16160": { nombre: "MOLDE SILICONA 2 MARIPOSAS 3...", precio_unitario: 2720, cantidad: 5, extra: "MARIPOSA MARIPUSAS 3D S1908 H61-029Q12 029Q12 8190802912693" },
+            "16159": { nombre: "MOLDE SILICONA MARIPOSA 3D P...", precio_unitario: 2830, cantidad: 10, extra: "MARIPOSAS S1908 H61-029Q12 029Q12 8190802912693" },
+            "AB005L3": { nombre: "MOLDE SILICONA GATITO 3D 5L3", precio_unitario: 2200, cantidad: 2, extra: "GATO ANIMAL" },
+            "AD002C3": { nombre: "MOLDE SILICONA OSITO LLAVERO", precio_unitario: 1200, cantidad: 4, extra: "OSO PELUCHE DIJE" },
+            "AB005Z10": { nombre: "MOLDE SILICONA FRUTILLA CHIC...", precio_unitario: 1800, cantidad: 3, extra: "FRUTA FRESA CHICA" },
+            "12196": { nombre: "ALARGUE ZAPATILLA LARGA DE 3...", precio_unitario: 6490, cantidad: 1, extra: "ENCHUFE CABLE TOMA CORRIENTE" },
+            "AD002H6": { nombre: "MOLDE SILICONA MEDIA Y GUANT...", precio_unitario: 1900, cantidad: 1, extra: "GUANTE BOTA NAVIDAD" },
+            "AD002G6": { nombre: "MOLDE SILICONA 12 GOLOSINA ROSA", precio_unitario: 1400, cantidad: 12, extra: "COLOSINA CARAMELO DULCE GOMITA" },
+            "AB005H10": { nombre: "MOLDE SILICONA OSITO SENTADO...", precio_unitario: 2200, cantidad: 6, extra: "OSO PELUCHE" },
+            "AB004P6": { nombre: "MOLDE SILICONA LERTA Y NUMER...", precio_unitario: 5500, cantidad: 3, extra: "LETRA LETRAS NUMERO NUMEROS ABECEDARIO ABC" },
+            "AB006M5": { nombre: "MOLDE SILICONA ESPIRAL 3D P/...", precio_unitario: 3000, cantidad: 2, extra: "VELA TORZADA" },
+            "AB004T6": { nombre: "MOLDE SILICONA 2 PORTAVELAS 4T6", precio_unitario: 2340, cantidad: 3, extra: "PORTA VELA CANDELABRO" },
+            "AC002A5": { nombre: "CUTTER + 5 HOJAS EN BLISTER 2A5", precio_unitario: 1350, cantidad: 3, extra: "TRINCHETA CORTANTE CUCHILLA REPUESTO" },
+            "AB006J5": { nombre: "PACK 4 PALITO SILICONA REVOL...", precio_unitario: 3600, cantidad: 2, extra: "ESPATULA MEZCLADOR REVOLVEDOR RESINA" },
+            "16256": { nombre: "ZAPATILLA ALARGUE NEGRO 4 TO...", precio_unitario: 15500, cantidad: 1, extra: "ENCHUFE CABLE TOMAS CORRIENTE" },
+            "AB037D2": { nombre: "ALMOHADILLAS NANO ADHESIVAS", precio_unitario: 3280, cantidad: 1, extra: "PEGAMENTO CINTA DOBLE FAZ STICKER" }
+        };
+        /* FIN_BASE_DATOS */
+
+        const aliasCodigos = {
+            "2227": ["5925030122278"], "881": ["7892506138812"], "880": ["7892506138805"],
+            "928": ["6950594529828"], "10X15": ["DOYPACK10X15"], "16X24": ["DOYPACK16X24"],
+            "12X20": ["DOYPACK12X20"], "DOYPACK": ["DOYPACK10X15", "DOYPACK16X24", "DOYPACK12X20"],
+            "BISEL": ["BISEL120", "BISEL100"], "HS-860": ["8873"], "HS860": ["8873"],
+            "S1908": ["16160", "16159", "15083"], "H61-029Q12": ["16160", "16159", "15083"],
+            "H61029Q12": ["16160", "16159", "15083"], "029Q12": ["16160", "16159", "15083"],
+            "8190802912693": ["16160", "16159", "15083"]
+        };
+
+        const CLAVE_STORAGE_REG = "registro_inventario_productos_v1";
+        const CLAVE_STORAGE_DB_IA = "productos_agregados_gemini_v1";
+
+        let registroGuardado = {};
+        let productosExtraIA = {};
+
+        function cargarDatosLocales() {
+            try {
+                const reg = localStorage.getItem(CLAVE_STORAGE_REG);
+                if (reg) registroGuardado = JSON.parse(reg);
+
+                const extraDB = localStorage.getItem(CLAVE_STORAGE_DB_IA);
+                if (extraDB) {
+                    productosExtraIA = JSON.parse(extraDB);
+                    Object.assign(baseDatos, productosExtraIA);
+                }
+            } catch (e) {}
+        }
+
+        function guardarStorage() {
+            try { localStorage.setItem(CLAVE_STORAGE_REG, JSON.stringify(registroGuardado)); } catch (e) {}
+        }
+
+        function guardarProductosIAStorage() {
+            try { localStorage.setItem(CLAVE_STORAGE_DB_IA, JSON.stringify(productosExtraIA)); } catch (e) {}
+        }
+
+        cargarDatosLocales();
+
+        const input = document.getElementById("inputCodigo");
+        const contenedorResultado = document.getElementById("resultado");
+        const subtitulo = document.getElementById("subtitulo");
+
+        function actualizarContadorProductos() {
+            const total = Object.keys(baseDatos).length;
+            const cantIA = Object.keys(productosExtraIA).length;
+            subtitulo.textContent = `${total} productos cargados` + (cantIA > 0 ? ` (${cantIA} sumados manual)` : "");
+        }
+
+        actualizarContadorProductos();
+
+        input.addEventListener("input", function() {
+            if (input.value.trim() === "") contenedorResultado.innerHTML = `<div class="neutro">Ingresá un código o nombre para ver el detalle y guardarlo en el registro</div>`;
+            else buscarProducto();
+        });
+
+        input.addEventListener("keypress", function(e) { if (e.key === "Enter") buscarProducto(); });
+
+        function normalizarTexto(texto) {
+            return String(texto || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/Ñ/g, "N").replace(/NI([AEIOU])/g, "N$1");
+        }
+
+        function obtenerVariantesPalabra(palabra) {
+            const varis = [palabra];
+            if (palabra.length > 3 && palabra.endsWith("S")) varis.push(palabra.slice(0, -1));
+            if (palabra.length > 4 && palabra.endsWith("ES")) varis.push(palabra.slice(0, -2));
+            return varis;
+        }
+
+        function renderizarItem(codigo, item) {
+            const total = item.precio_unitario * item.cantidad;
+            const reg = registroGuardado[codigo];
+            const cantFisicaVal = reg ? reg.cantidad_fisica : item.cantidad;
+            const precioDeseadoVal = reg ? reg.precio_venta : "";
+            const badge = reg ? `<span class="badge-guardado">✔ EN REGISTRO</span>` : "";
+
+            return `
+                <div class="codigo-tag"><span>CÓDIGO: ${codigo}</span>${badge}</div>
+                <div class="nombre">📦 ${item.nombre}</div>
+                <div class="dato">💲 <b>Costo unitario (ticket):</b> $${item.precio_unitario.toLocaleString('es-AR')}</div>
+                <div class="dato">🔢 <b>Cantidad en ticket:</b> ${item.cantidad} UNI</div>
+                <div class="total">💰 Costo total ticket: $${total.toLocaleString('es-AR')}</div>
+                <div class="panel-carga">
+                    <div class="fila-inputs">
+                        <div class="grupo-input">
+                            <label>Cant. en físico:</label>
+                            <input type="number" id="fisico_${codigo}" value="${cantFisicaVal}" min="0" placeholder="Ej: ${item.cantidad}">
+                        </div>
+                        <div class="grupo-input">
+                            <label>Mi precio venta ($):</label>
+                            <input type="number" id="precio_${codigo}" value="${precioDeseadoVal}" min="0" placeholder="Ej: ${item.precio_unitario * 2}">
+                        </div>
+                    </div>
+                    <button class="btn-guardar-item" onclick="guardarDesdeBuscador('${codigo}')">
+                        💾 ${reg ? "Actualizar en mi Registro" : "Guardar en mi Registro"}
+                    </button>
+                </div>
+            `;
+        }
+
+        function mostrarLista(listaItems, textoBusqueda) {
+            const encabezado = listaItems.length > 1 ? `<div class="contador-resultados">🔍 Se encontraron <b>${listaItems.length} productos</b> para "${textoBusqueda}"</div>` : "";
+            const cuerpo = listaItems.map(([cod, prod]) => renderizarItem(cod, prod)).join(`<div class="separador-item"></div>`);
+            contenedorResultado.innerHTML = encabezado + cuerpo;
+        }
+
+        function buscarProducto() {
+            const entradaCruda = input.value.trim().toUpperCase().replace(/^SKU:/, "").replace(/^ITEM NO:/, "").trim();
+            if (!entradaCruda) return;
+            if (entradaCruda in baseDatos) return mostrarLista([[entradaCruda, baseDatos[entradaCruda]]], entradaCruda);
+            if (entradaCruda in aliasCodigos) return mostrarLista(aliasCodigos[entradaCruda].map(cod => [cod, baseDatos[cod]]), entradaCruda);
+
+            const palabrasBuscadas = normalizarTexto(entradaCruda).split(/\s+/).filter(Boolean);
+            const coincidencias = Object.entries(baseDatos).filter(([cod, prod]) => {
+                const textoProducto = normalizarTexto(`${cod} ${prod.nombre} ${prod.extra || ""}`);
+                return palabrasBuscadas.every(palabra => obtenerVariantesPalabra(palabra).some(raiz => textoProducto.includes(raiz)));
+            });
+
+            if (coincidencias.length > 0) mostrarLista(coincidencias, entradaCruda);
+            else contenedorResultado.innerHTML = `<div class="error">❌ No se encontraron resultados para "${entradaCruda}".</div>`;
+        }
+
+        // --- CARGA MANUAL DE IA ---
+        function copiarPrompt(btn) {
+            const texto = `Sos un asistente experto en inventario. Extraé todos los productos del ticket adjunto y devolvelos EXCLUSIVAMENTE en este formato JSON exacto (sin ningún otro comentario o texto). Si el producto no tiene código visible, inventale uno corto en mayúsculas relacionado al producto (ej: DOYPACK10X15). Ejemplo de salida esperada:
+
+[
+  {
+    "codigo": "BM4706",
+    "nombre": "ANGEL CORAZON GDE",
+    "precio_unitario": 1800,
+    "cantidad": 5,
+    "extra": "ANGELITO GRANDE NAVIDAD"
+  }
+]`;
+            navigator.clipboard.writeText(texto).then(() => {
+                const original = btn.textContent;
+                btn.textContent = "✅ ¡Instrucciones copiadas!";
+                setTimeout(() => btn.textContent = original, 2000);
+            });
+        }
+
+        function parsearJSONSeguro(texto) {
+            let limpio = String(texto || "").replace(/```json/gi, "").replace(/```/g, "").trim();
+            try { return JSON.parse(limpio); } catch (e) {
+                const inicio = limpio.indexOf("[");
+                const fin = limpio.lastIndexOf("]");
+                if (inicio !== -1 && fin !== -1 && fin > inicio) {
+                    try { return JSON.parse(limpio.slice(inicio, fin + 1)); } catch (e2) {}
+                }
+                return null;
+            }
+        }
+
+        function procesarTextoManual() {
+            const textarea = document.getElementById("inputTextoManual");
+            const divResultados = document.getElementById("listaCargados");
+            const texto = textarea.value.trim();
+
+            if (!texto) {
+                alert("Por favor, pegá la respuesta JSON de la IA en la caja de texto.");
+                return;
+            }
+
+            const extraidos = parsearJSONSeguro(texto);
+            if (!Array.isArray(extraidos)) {
+                alert("No se pudo detectar el formato correcto. Asegurate de copiar solo el texto JSON que empieza con [ y termina con ].");
+                return;
+            }
+
+            const sumarSiExiste = document.getElementById("chkSumarExistentes").checked;
+            let nuevosCont = 0;
+            let actualizadosCont = 0;
+            const detalleCargados = [];
+
+            extraidos.forEach(prod => {
+                const cod = String(prod.codigo || "").trim().toUpperCase();
+                if (!cod) return;
+                const precioUnit = Number(prod.precio_unitario) || 0;
+                const cant = Number(prod.cantidad) || 1;
+                const nombreProd = String(prod.nombre || cod).trim().toUpperCase();
+                const extraKeywords = String(prod.extra || "").trim().toUpperCase();
+
+                if (cod in baseDatos) {
+                    const cantFinal = sumarSiExiste ? (Number(baseDatos[cod].cantidad) || 0) + cant : cant;
+                    baseDatos[cod] = { nombre: nombreProd, precio_unitario: precioUnit, cantidad: cantFinal, extra: `${baseDatos[cod].extra || ""} ${extraKeywords}`.trim() };
+                    actualizadosCont++;
+                    detalleCargados.push(`<div>🔄 <b>${cod}</b>: ${nombreProd} ($${precioUnit.toLocaleString('es-AR')} • ${cantFinal} UNI)</div>`);
+                } else {
+                    baseDatos[cod] = { nombre: nombreProd, precio_unitario: precioUnit, cantidad: cant, extra: extraKeywords };
+                    nuevosCont++;
+                    detalleCargados.push(`<div>✨ <b>${cod}</b>: ${nombreProd} ($${precioUnit.toLocaleString('es-AR')} • ${cant} UNI)</div>`);
+                }
+                productosExtraIA[cod] = baseDatos[cod];
+            });
+
+            if (extraidos.length > 0) {
+                guardarProductosIAStorage();
+                actualizarContadorProductos();
+                if (input.value.trim() !== "") buscarProducto();
+                textarea.value = "";
+                
+                divResultados.style.display = "block";
+                divResultados.innerHTML = `<div style="color:#51cf66; font-weight:bold; margin-bottom:8px;">✔ ${nuevosCont} nuevos y ${actualizadosCont} actualizados:</div>` + detalleCargados.join("");
+            } else {
+                alert("No se encontraron productos válidos en el texto pegado.");
+            }
+        }
+
+        // --- DESCARGA DE HTML ---
+        function descargarHTMLActualizado() {
+            const LineasProductos = Object.entries(baseDatos).map(([cod, p]) => {
+                return `            ${JSON.stringify(cod)}: { nombre: ${JSON.stringify(p.nombre)}, precio_unitario: ${Number(p.precio_unitario)}, cantidad: ${Number(p.cantidad)}, extra: ${JSON.stringify(p.extra || "")} }`;
+            }).join(",\n");
+
+            const marcadorIni = "/* " + "INICIO_BASE_DATOS" + " */";
+            const marcadorFin = "/* " + "FIN_BASE_DATOS" + " */";
+            const nuevoBloqueDB = `${marcadorIni}\n        const baseDatos = {\n${LineasProductos}\n        };\n        ${marcadorFin}`;
+
+            const htmlActual = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+            const regexBloque = new RegExp("\\/\\* INICIO_BASE_DATOS \\*\\/[\\s\\S]*?\\/\\* FIN_BASE_DATOS \\*\\/");
+            const htmlActualizado = htmlActual.replace(regexBloque, nuevoBloqueDB);
+
+            const blob = new Blob([htmlActualizado], { type: "text/html;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `consulta_productos_${Object.keys(baseDatos).length}_items.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // --- FUNCIONES DE REGISTRO E IMPRESIÓN ---
+        function guardarDesdeBuscador(codigo) {
+            const item = baseDatos[codigo];
+            const inputFisico = document.getElementById(`fisico_${codigo}`);
+            const inputPrecio = document.getElementById(`precio_${codigo}`);
+            registroGuardado[codigo] = {
+                codigo: codigo, nombre: item.nombre, costo_unitario: item.precio_unitario,
+                cantidad_ticket: item.cantidad, cantidad_fisica: inputFisico && inputFisico.value ? Number(inputFisico.value) : 0,
+                precio_venta: inputPrecio && inputPrecio.value ? Number(inputPrecio.value) : 0, fecha: new Date().toLocaleString('es-AR')
+            };
+            persistirYRenderizar();
+            buscarProducto();
+        }
+
+        function actualizarEnRegistro(codigo, campo, valor) {
+            if (!registroGuardado[codigo]) return;
+            registroGuardado[codigo][campo] = valor !== "" ? Number(valor) : 0;
+            guardarStorage();
+            renderizarTotalesYPrint();
+            const subItem = document.getElementById(`resumen_reg_${codigo}`);
+            if (subItem) {
+                const r = registroGuardado[codigo];
+                const gan = r.precio_venta - r.costo_unitario;
+                subItem.innerHTML = `<span>Ganancia unit.: <b class="${gan >= 0 ? 'ganancia-pos' : 'ganancia-neg'}">$${gan.toLocaleString('es-AR')}</b></span><span>Total venta: <b class="ganancia-pos">$${(r.cantidad_fisica * r.precio_venta).toLocaleString('es-AR')}</b></span>`;
+            }
+        }
+
+        function quitarDelRegistro(codigo) { delete registroGuardado[codigo]; persistirYRenderizar(); if (input.value.trim() !== "") buscarProducto(); }
+        function vaciarRegistro() { if (Object.keys(registroGuardado).length === 0) return; if (confirm("¿Borrar todo el registro?")) { registroGuardado = {}; persistirYRenderizar(); if (input.value.trim() !== "") buscarProducto(); } }
+        function persistirYRenderizar() { guardarStorage(); renderizarRegistro(); }
+
+        function renderizarRegistro() {
+            const lista = Object.values(registroGuardado);
+            const contenedor = document.getElementById("listaRegistro");
+            document.getElementById("contadorRegistro").textContent = lista.length;
+            if (lista.length === 0) { contenedor.innerHTML = `<div class="neutro">Todavía no guardaste productos en el registro.</div>`; document.getElementById("areaImpresion").innerHTML = ""; return; }
+            contenedor.innerHTML = lista.map(r => {
+                const gan = r.precio_venta - r.costo_unitario;
+                return `
+                    <div class="item-registro">
+                        <div class="item-registro-top">
+                            <div><div class="codigo-tag" style="margin-bottom:2px;">CÓDIGO: ${r.codigo}</div><div style="font-weight:bold; font-size:16px;">${r.nombre}</div></div>
+                            <button class="btn-quitar" onclick="quitarDelRegistro('${r.codigo}')">✖</button>
+                        </div>
+                        <div class="info-costo-mini">Costo ticket: $${r.costo_unitario.toLocaleString('es-AR')} | Cant. ticket: ${r.cantidad_ticket} UNI</div>
+                        <div class="fila-inputs">
+                            <div class="grupo-input"><label>En físico (UNI):</label><input type="number" value="${r.cantidad_fisica}" min="0" oninput="actualizarEnRegistro('${r.codigo}', 'cantidad_fisica', this.value)"></div>
+                            <div class="grupo-input"><label>Precio venta ($):</label><input type="number" value="${r.precio_venta}" min="0" oninput="actualizarEnRegistro('${r.codigo}', 'precio_venta', this.value)"></div>
+                        </div>
+                        <div class="resumen-item-reg" id="resumen_reg_${r.codigo}">
+                            <span>Ganancia unit.: <b class="${gan >= 0 ? 'ganancia-pos' : 'ganancia-neg'}">$${gan.toLocaleString('es-AR')}</b></span><span>Total venta: <b class="ganancia-pos">$${(r.cantidad_fisica * r.precio_venta).toLocaleString('es-AR')}</b></span>
+                        </div>
+                    </div>`;
+            }).join("") + `<div id="contenedorTotalesReg"></div>`;
+            renderizarTotalesYPrint();
+        }
+
+        function renderizarTotalesYPrint() {
+            const lista = Object.values(registroGuardado);
+            if (lista.length === 0) return;
+            let unis = 0, costo = 0, venta = 0;
+            lista.forEach(r => { unis += Number(r.cantidad_fisica)||0; costo += (Number(r.cantidad_fisica)||0)*(Number(r.costo_unitario)||0); venta += (Number(r.cantidad_fisica)||0)*(Number(r.precio_venta)||0); });
+            const gan = venta - costo;
+            const divTotales = document.getElementById("contenedorTotalesReg");
+            if (divTotales) divTotales.innerHTML = `<div class="resumen-general"><div>📦 <b>Total unidades en físico:</b> ${unis} UNI</div><div>💵 <b>Costo sobre stock físico:</b> $${costo.toLocaleString('es-AR')}</div><div>🏷️ <b>Total a recaudar (venta):</b> $${venta.toLocaleString('es-AR')}</div><div style="color:${gan >= 0 ? '#51cf66' : '#ff6b6b'}; font-weight:bold;">📈 Ganancia neta estimada: $${gan.toLocaleString('es-AR')}</div></div>`;
+            
+            const filas = lista.map(r => `<tr><td><b>${r.codigo}</b></td><td>${r.nombre}</td><td>$${r.costo_unitario.toLocaleString('es-AR')}</td><td>${r.cantidad_ticket}</td><td><b>${r.cantidad_fisica}</b></td><td><b>$${r.precio_venta.toLocaleString('es-AR')}</b></td><td>$${((Number(r.cantidad_fisica)||0)*(Number(r.precio_venta)||0)).toLocaleString('es-AR')}</td></tr>`).join("");
+            document.getElementById("areaImpresion").innerHTML = `
+                <div class="titulo-impresion">Planilla de Stock y Precios</div><div class="fecha-impresion">Fecha: ${new Date().toLocaleString('es-AR')} • Items: ${lista.length}</div>
+                <table class="tabla-print"><thead><tr><th>Código</th><th>Producto</th><th>Costo Unit.</th><th>Cant. Ticket</th><th>Cant. Físico</th><th>Precio Venta</th><th>Total Venta</th></tr></thead><tbody>${filas}</tbody></table>
+                <div class="totales-print"><div><b>Total artículos:</b> ${unis} UNI</div><div><b>Costo total:</b> $${costo.toLocaleString('es-AR')}</div><div><b>Total proyectado:</b> $${venta.toLocaleString('es-AR')}</div><div><b>Ganancia:</b> $${gan.toLocaleString('es-AR')}</div></div>
+            `;
+        }
+
+        function imprimirRegistro() { if (Object.keys(registroGuardado).length === 0) alert("Nada para imprimir."); else window.print(); }
+        function descargarCSV() {
+            const lista = Object.values(registroGuardado);
+            if (lista.length === 0) { alert("Nada para descargar."); return; }
+            let csv = "Codigo;Producto;Costo Unitario Ticket;Cantidad Ticket;Cantidad en Fisico;Precio Venta Deseado;Subtotal Venta\n";
+            lista.forEach(r => csv += `${r.codigo};${r.nombre.replace(/;/g, ",")};${r.costo_unitario};${r.cantidad_ticket};${r.cantidad_fisica};${r.precio_venta};${(Number(r.cantidad_fisica)||0)*(Number(r.precio_venta)||0)}\n`);
+            const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `registro_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+        function limpiar() { input.value = ""; contenedorResultado.innerHTML = `<div class="neutro">Ingresá un código o nombre para ver el detalle y guardarlo en el registro</div>`; input.focus(); }
+        renderizarRegistro();
+    </script>
+</body>
+</html>
